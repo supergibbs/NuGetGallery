@@ -159,10 +159,7 @@
                         approvedOwner++;
                 });
 
-                if (approvedOwner >= 2)
-                    return true;
-
-                return false;
+                return approvedOwner >= 2;
             }, viewModel);
 
             ko.applyBindings(viewModel);
