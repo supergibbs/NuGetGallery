@@ -220,7 +220,9 @@ Function Install-SolutionPackages {
 		[Alias('output')]
 		[string]$OutputPath,
 		[switch]$NonInteractive = $true,
-		[switch]$ExcludeVersion = $false
+		[switch]$ExcludeVersion = $false,
+		[Alias('configfile')]
+		[string]$ConfigFile
     )
     $opts = , 'install'
 	$InstallLocation = $NuGetClientRoot
@@ -230,6 +232,10 @@ Function Install-SolutionPackages {
     else {
         $opts += $SolutionPath
 		$InstallLocation = Split-Path -Path $SolutionPath -Parent
+    }
+    
+    if ($ConfigFile) {
+    	$opts += '-configfile', $ConfigFile
     }
 
     if (-not $VerbosePreference) {
@@ -263,7 +269,9 @@ Function Restore-SolutionPackages {
         [string]$SolutionPath,
         [ValidateSet(4, 12, 14, 15)]
         [int]$MSBuildVersion,
-		[string]$BuildNumber
+		[string]$BuildNumber,
+		[Alias('configfile')]
+		[string]$ConfigFile
     )
 	$InstallLocation = $NuGetClientRoot
     $opts = , 'restore'
@@ -276,6 +284,10 @@ Function Restore-SolutionPackages {
     }
     if ($MSBuildVersion) {
         $opts += '-MSBuildVersion', $MSBuildVersion
+    }
+    
+    if ($ConfigFile) {
+    	$opts += '-configfile', $ConfigFile
     }
 
     if (-not $VerbosePreference) {
