@@ -143,7 +143,7 @@ namespace NuGetGallery.FunctionalTests
         private async Task<string> GetResponseText(string url)
         {
             var request = WebRequest.Create(url);
-            var response = await request.GetResponseAsync();
+            var response = await request.GetResponseAsync().ConfigureAwait(false);
 
             string responseText;
             using (var sr = new StreamReader(response.GetResponseStream()))
