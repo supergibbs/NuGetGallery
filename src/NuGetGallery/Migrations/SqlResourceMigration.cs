@@ -9,16 +9,29 @@ namespace NuGetGallery.Migrations
     public class SqlResourceMigration : DbMigration
     {
         private static readonly string[] Go = new[] { "GO" };
-        private readonly string _sqlFile;
+        private readonly string[] _sqlFiles;
 
         public SqlResourceMigration(string embeddedResourceSqlFile)
         {
-            _sqlFile = embeddedResourceSqlFile;
+            _sqlFiles = new [] { embeddedResourceSqlFile };
+        }
+
+        public SqlResourceMigration(string[] embeddedResourceSqlFiles)
+        {
+            _sqlFiles = embeddedResourceSqlFiles;
         }
 
         public override void Up()
         {
-            Stream stream = typeof(ExecuteELMAHSql).Assembly.GetManifestResourceStream(_sqlFile);
+            foreach (var sqlFile in _sqlFiles)
+            {
+                ExecuteEmbeddedSql(sqlFile);
+            }
+        }
+
+        private void ExecuteEmbeddedSql(string sqlFile)
+        {
+            Stream stream = typeof(ExecuteELMAHSql).Assembly.GetManifestResourceStream(sqlFile);
             using (var streamReader = new StreamReader(stream))
             {
                 var statements = streamReader.ReadToEnd().Split(Go, StringSplitOptions.RemoveEmptyEntries);

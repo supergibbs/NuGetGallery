@@ -96,7 +96,6 @@ namespace NuGetGallery
 
             var package = CreatePackageFromNuGetPackage(packageRegistration, nugetPackage, packageMetadata, packageStreamMetadata, user);
             packageRegistration.Packages.Add(package);
-            await UpdateIsLatestAsync(packageRegistration, false);
 
             if (commitChanges)
             {
@@ -259,8 +258,6 @@ namespace NuGetGallery
             package.Published = DateTime.UtcNow;
             package.Listed = true;
 
-            await UpdateIsLatestAsync(package.PackageRegistration, false);
-
             if (commitChanges)
             {
                 await _packageRepository.CommitChangesAsync();
@@ -330,8 +327,6 @@ namespace NuGetGallery
             package.LastUpdated = DateTime.UtcNow;
             // NOTE: LastEdited will be overwritten by a trigger defined in the migration named "AddTriggerForPackagesLastEdited".
             package.LastEdited = DateTime.UtcNow;
-
-            await UpdateIsLatestAsync(package.PackageRegistration, false);
             
             await _auditingService.SaveAuditRecord(new PackageAuditRecord(package, AuditedPackageAction.List));
 
@@ -356,11 +351,6 @@ namespace NuGetGallery
             package.LastUpdated = DateTime.UtcNow;
             // NOTE: LastEdited will be overwritten by a trigger defined in the migration named "AddTriggerForPackagesLastEdited".
             package.LastEdited = DateTime.UtcNow;
-
-            if (package.IsLatest || package.IsLatestStable)
-            {
-                await UpdateIsLatestAsync(package.PackageRegistration, false);
-            }
 
             await _auditingService.SaveAuditRecord(new PackageAuditRecord(package, AuditedPackageAction.Unlist));
 
@@ -671,69 +661,6 @@ namespace NuGetGallery
             {
                 throw new EntityException(Strings.TitleMatchesExistingRegistration, packageMetadata.Title);
             }
-        }
-
-        public async Task UpdateIsLatestAsync(PackageRegistration packageRegistration, bool commitChanges = true)
-        {
-            if (!packageRegistration.Packages.Any())
-            {
-                return;
-            }
-
-            // TODO: improve setting the latest bit; this is horrible. Trigger maybe?
-            foreach (var pv in packageRegistration.Packages.Where(p => p.IsLatest || p.IsLatestStable))
-            {
-                pv.IsLatest = false;
-                pv.IsLatestStable = false;
-                pv.LastUpdated = DateTime.UtcNow;
-            }
-
-            // If the last listed package was just unlisted, then we won't find another one
-            var latestPackage = FindPackage(packageRegistration.Packages, p => !p.Deleted && p.Listed);
-
-            if (latestPackage != null)
-            {
-                latestPackage.IsLatest = true;
-                latestPackage.LastUpdated = DateTime.UtcNow;
-
-                if (latestPackage.IsPrerelease)
-                {
-                    // If the newest uploaded package is a prerelease package, we need to find an older package that is
-                    // a release version and set it to IsLatest.
-                    var latestReleasePackage = FindPackage(packageRegistration.Packages.Where(p => !p.IsPrerelease && !p.Deleted && p.Listed));
-                    if (latestReleasePackage != null)
-                    {
-                        // We could have no release packages
-                        latestReleasePackage.IsLatestStable = true;
-                        latestReleasePackage.LastUpdated = DateTime.UtcNow;
-                    }
-                }
-                else
-                {
-                    // Only release versions are marked as IsLatestStable.
-                    latestPackage.IsLatestStable = true;
-                }
-            }
-
-            if (commitChanges)
-            {
-                await _packageRepository.CommitChangesAsync();
-            }
-        }
-
-        private static Package FindPackage(IEnumerable<Package> packages, Func<Package, bool> predicate = null)
-        {
-            if (predicate != null)
-            {
-                packages = packages.Where(predicate);
-            }
-            NuGetVersion version = packages.Max(p => new NuGetVersion(p.Version));
-
-            if (version == null)
-            {
-                return null;
-            }
-            return packages.First(pv => pv.Version.Equals(version.ToString(), StringComparison.OrdinalIgnoreCase));
         }
 
         private PackageOwnerRequest FindExistingPackageOwnerRequest(PackageRegistration package, User pendingOwner)

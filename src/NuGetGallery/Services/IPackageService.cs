@@ -15,8 +15,6 @@ namespace NuGetGallery
         IEnumerable<Package> FindPackagesByOwner(User user, bool includeUnlisted);
         IEnumerable<Package> FindDependentPackages(Package package);
 
-        Task UpdateIsLatestAsync(PackageRegistration packageRegistration, bool commitChanges = true);
-
         /// <summary>
         /// Populate the related database tables to create the specified package for the specified user.
         /// </summary>

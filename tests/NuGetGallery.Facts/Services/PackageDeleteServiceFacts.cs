@@ -162,21 +162,6 @@ namespace NuGetGallery
             }
 
             [Fact]
-            public async Task WillUpdatePackageLatestVersions()
-            {
-                var packageService = new Mock<IPackageService>();
-                var service = CreateService(packageService: packageService);
-                var packageRegistration = new PackageRegistration();
-                var package = new Package { PackageRegistration = packageRegistration, Version = "1.0.0", Hash = _packageHashForTests };
-                packageRegistration.Packages.Add(package);
-                var user = new User("test");
-
-                await service.SoftDeletePackagesAsync(new[] { package }, user, string.Empty, string.Empty);
-
-                packageService.Verify(x => x.UpdateIsLatestAsync(packageRegistration, false));
-            }
-
-            [Fact]
             public async Task WillUpdateTheIndexingService()
             {
                 var indexingService = new Mock<IIndexingService>();
@@ -337,21 +322,6 @@ namespace NuGetGallery
                 packageRepository.Verify(x => x.DeleteOnCommit(package));
                 packageRepository.Verify(x => x.CommitChangesAsync());
                 Mock.Get(service).Verify();
-            }
-
-            [Fact]
-            public async Task WillUpdatePackageLatestVersions()
-            {
-                var packageService = new Mock<IPackageService>();
-                var service = CreateService(packageService: packageService);
-                var packageRegistration = new PackageRegistration();
-                var package = new Package { Key = 123, PackageRegistration = packageRegistration, Version = "1.0.0", Hash = _packageHashForTests };
-                packageRegistration.Packages.Add(package);
-                var user = new User("test");
-
-                await service.HardDeletePackagesAsync(new[] { package }, user, string.Empty, string.Empty, false);
-
-                packageService.Verify(x => x.UpdateIsLatestAsync(packageRegistration, false));
             }
 
             [Fact]

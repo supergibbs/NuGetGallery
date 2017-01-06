@@ -92,9 +92,6 @@ namespace NuGetGallery
 
                 _packageDeletesRepository.InsertOnCommit(packageDelete);
 
-                // Update latest versions
-                await UpdateIsLatestAsync(packageRegistrations);
-
                 // Commit changes
                 await _packageRepository.CommitChangesAsync();
                 await _packageDeletesRepository.CommitChangesAsync();
@@ -141,9 +138,6 @@ namespace NuGetGallery
                     _packageRepository.DeleteOnCommit(package);
                 }
 
-                // Update latest versions
-                await UpdateIsLatestAsync(packageRegistrations);
-
                 // Commit changes to package repository
                 await _packageRepository.CommitChangesAsync();
 
@@ -165,15 +159,6 @@ namespace NuGetGallery
         protected virtual async Task ExecuteSqlCommandAsync(Database database, string sql, params object[] parameters)
         {
             await database.ExecuteSqlCommandAsync(sql, parameters);
-        }
-
-        private async Task UpdateIsLatestAsync(IEnumerable<PackageRegistration> packageRegistrations)
-        {
-            // Update latest versions
-            foreach (var packageRegistration in packageRegistrations)
-            {
-                await _packageService.UpdateIsLatestAsync(packageRegistration, false);
-            }
         }
 
         private async Task RemovePackageRegistrationsWithoutPackages(IEnumerable<PackageRegistration> packageRegistrations)
