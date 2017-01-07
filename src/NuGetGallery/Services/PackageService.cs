@@ -126,6 +126,13 @@ namespace NuGetGallery
                 throw new ArgumentNullException(nameof(id));
             }
 
+            var latestPrerelease = version?.ToLowerInvariant() == "prerelease";
+
+            if (latestPrerelease && !allowPrerelease)
+            {
+                throw new InvalidOperationException("Cannot request latest prerelease and not allow prerelease");
+            }
+
             // Optimization: Every time we look at a package we almost always want to see
             // all the other packages with the same ID via the PackageRegistration property.
             // This resulted in a gnarly query.
@@ -144,13 +151,26 @@ namespace NuGetGallery
             var packageVersions = packagesQuery.ToList();
 
             Package package;
-            if (String.IsNullOrEmpty(version))
+            if (String.IsNullOrEmpty(version) || latestPrerelease)
             {
-                package = packageVersions.FirstOrDefault(p => p.IsLatestStable);
-
-                if (package == null && allowPrerelease)
+                if (latestPrerelease)
                 {
-                    package = packageVersions.FirstOrDefault(p => p.IsLatest);
+                    package = packageVersions.Where(p => p.IsPrerelease).FirstOrDefault(p => p.IsLatest);
+
+                    // If we couldn't find a package marked as latest, then return the most recent prerelease one 
+                    if (package == null)
+                    {
+                        package = packageVersions.Where(p => p.IsPrerelease).OrderByDescending(p => p.Version).FirstOrDefault();
+                    }
+                }
+                else
+                {
+                    package = packageVersions.FirstOrDefault(p => p.IsLatestStable);
+
+                    if (package == null && allowPrerelease)
+                    {
+                        package = packageVersions.FirstOrDefault(p => p.IsLatest);
+                    }
                 }
 
                 // If we couldn't find a package marked as latest, then

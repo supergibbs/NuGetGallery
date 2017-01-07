@@ -1223,6 +1223,80 @@ namespace NuGetGallery
                 Assert.NotNull(result);
                 Assert.Equal("1.0.0b", result.Version);
             }
+
+            [Fact]
+            public void ReturnsTheLatestPrereleaseVersionWhenVersionIsPrerelease()
+            {
+                // Arrange
+                var repository = new Mock<IEntityRepository<Package>>(MockBehavior.Strict);
+                var packageRegistration = new PackageRegistration { Id = "theId" };
+                var package1 = new Package { Version = "1.0", PackageRegistration = packageRegistration, Listed = true, IsLatestStable = true };
+                var package2 = new Package { Version = "1.0.0a", PackageRegistration = packageRegistration, IsPrerelease = true, Listed = true, IsLatest = true };
+
+                repository
+                    .Setup(repo => repo.GetAll())
+                    .Returns(new[] { package1, package2 }.AsQueryable());
+                var service = CreateService(packageRepository: repository);
+
+                // Act
+                var result = service.FindPackageByIdAndVersion("theId", "prerelease");
+
+                // Assert
+                Assert.NotNull(result);
+                Assert.Equal("1.0.0a", result.Version);
+            }
+
+            [Fact]
+            public void ReturnsTheMostRecentPrereleaseVersionWhenVersionIsPrereleaseAndNoLatestVersionIsAvailable()
+            {
+                // Arrange
+                var repository = new Mock<IEntityRepository<Package>>(MockBehavior.Strict);
+                var packageRegistration = new PackageRegistration { Id = "theId" };
+                var package1 = new Package { Version = "1.0", PackageRegistration = packageRegistration, Listed = true, IsLatestStable = true };
+                var package2 = new Package { Version = "1.0.0a", PackageRegistration = packageRegistration, IsPrerelease = true, Listed = true };
+
+                repository
+                    .Setup(repo => repo.GetAll())
+                    .Returns(new[] { package1, package2 }.AsQueryable());
+                var service = CreateService(packageRepository: repository);
+
+                // Act
+                var result = service.FindPackageByIdAndVersion("theId", "prerelease");
+
+                // Assert
+                Assert.NotNull(result);
+                Assert.Equal("1.0.0a", result.Version);
+            }
+
+            [Fact]
+            public void ReturnsTheMostRecentVersionWhenVersionIsPrereleaseAndNoPrereleaseVersionIsAvailable()
+            {
+                // Arrange
+                var repository = new Mock<IEntityRepository<Package>>(MockBehavior.Strict);
+                var packageRegistration = new PackageRegistration { Id = "theId" };
+                var package1 = new Package { Version = "1.1", PackageRegistration = packageRegistration, Listed = true, IsLatestStable = true };
+                var package2 = new Package { Version = "1.0", PackageRegistration = packageRegistration, Listed = true };
+
+                repository
+                    .Setup(repo => repo.GetAll())
+                    .Returns(new[] { package1, package2 }.AsQueryable());
+                var service = CreateService(packageRepository: repository);
+
+                // Act
+                var result = service.FindPackageByIdAndVersion("theId", "prerelease");
+
+                // Assert
+                Assert.NotNull(result);
+                Assert.Equal("1.1", result.Version);
+            }
+            
+            [Fact]
+            public void WillThrowIfVersionIsPrereleaseAndPrereleaseIsDisallowed()
+            {
+                var service = CreateService();
+                var ex = Assert.Throws<InvalidOperationException>(() => service.FindPackageByIdAndVersion("theId", "prerelease", false));
+                Assert.NotNull(ex);
+            }
         }
 
         public class TheFindPackagesByOwnerMethod : TestContainer
